@@ -1,0 +1,19 @@
+Server / Client
+
+Comunicazioni
+
+1) Client -> Server
+
+   - login ++
+   - status ++
+   - logout ++
+
+2) Server -> User
+
+    - online/offline notifiche ++
+
+
+3) User -> User
+
+    - messaggi diretti
+    - broadcasts

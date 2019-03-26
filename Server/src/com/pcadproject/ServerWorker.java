@@ -49,14 +49,14 @@ public class ServerWorker extends Thread {
                 if (tokens != null && tokens.length > 0) {
                     String cmd = tokens[0];
                     
-                    if ("quit".equalsIgnoreCase(cmd)){
-                        server.releaseWorker(this);
-                        break;}
-                    else if ("login".equalsIgnoreCase(cmd)) handleLogin(outputStream, tokens);
+                    if ("quit".equalsIgnoreCase(cmd)) {
+                        handleLogOut();
+                        break;
+                    } else if ("login".equalsIgnoreCase(cmd)) handleLogin(outputStream, tokens);
                     else if ("msg".equalsIgnoreCase(cmd)) handleMessages(outputStream, tokens);
                     else {
                         String msg = "Comando non riconosciuto: " + cmd + " \n";
-                        outputStream.write(msg.getBytes());
+                        send(msg);
                     }
 
                 }
@@ -64,6 +64,14 @@ public class ServerWorker extends Thread {
             }
             clientSocket.close();
         }
+    }
+
+    private void handleLogOut() throws IOException {
+        send("Arrivederci");
+        String onlineNotification = "L'utente " + login +" e' ora offline!\n";
+        broadcast(onlineNotification);
+        server.releaseWorker(this);
+        return;
     }
 
     private void handleMessages(OutputStream outputStream, String[] tokens) throws IOException {
@@ -105,8 +113,11 @@ public class ServerWorker extends Thread {
 
         String onlineNotification = null;
         for(ServerWorker worker: server.getServerWorkersList()) {
-            onlineNotification = "L'utente " + worker.getLogin() +" e' ora online!\n";
-            send(onlineNotification);
+            if(worker.getLogin()!= null
+                    &&(!login.equals(worker.getLogin()))){
+                onlineNotification = "L'utente " + worker.getLogin() +" e' ora online!\n";
+                send(onlineNotification);
+            }
         }
     }
 
@@ -119,7 +130,6 @@ public class ServerWorker extends Thread {
     }
 
     private void send(String msg) throws IOException {
-
         outputStream.write(msg.getBytes());
     }
 
