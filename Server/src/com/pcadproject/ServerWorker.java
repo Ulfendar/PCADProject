@@ -6,13 +6,22 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.*;
 import java.net.Socket;
 import java.util.Date;
+import java.util.List;
 
 public class ServerWorker extends Thread {
-    private final Socket clientSocket;
-    private String login =null;
+    private Socket clientSocket;
+    private Server server;//contiene la lista degli altri ServerWorkers
+    private String login = null;
+    private OutputStream outputStream;
 
-    public ServerWorker(Socket clientSocket) {
+    public ServerWorker(Server server, Socket clientSocket) throws IOException {
+        this.server = server;
         this.clientSocket = clientSocket;
+        this.outputStream = clientSocket.getOutputStream();
+    }
+
+    public String getLogin() {
+        return login;
     }
 
     @Override
@@ -28,30 +37,31 @@ public class ServerWorker extends Thread {
 
     private void handleClientSocket() throws IOException, InterruptedException {
         InputStream inputStream = clientSocket.getInputStream();
-        OutputStream outputStream = clientSocket.getOutputStream();
         outputStream.write("Connesso!\n".getBytes());
 
-        String line,msg;
+        String line;
 
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(inputStream))) {
             while ((line = reader.readLine()) != null) {
                 String[] tokens = StringUtils.split(line);
+
                 if (tokens != null && tokens.length > 0) {
                     String cmd = tokens[0];
-                    if ("quit".equalsIgnoreCase(cmd)) break;
+                    
+                    if ("quit".equalsIgnoreCase(cmd)){
+                        server.releaseWorker(this);
+                        break;}
                     else if ("login".equalsIgnoreCase(cmd)) handleLogin(outputStream, tokens);
                     else if ("msg".equalsIgnoreCase(cmd)) handleMessages(outputStream, tokens);
                     else {
-                        msg = "Comando non riconosciuto: " + cmd + " \n";
+                        String msg = "Comando non riconosciuto: " + cmd + " \n";
                         outputStream.write(msg.getBytes());
                     }
 
                 }
 
             }
-
-
             clientSocket.close();
         }
     }
@@ -72,16 +82,45 @@ public class ServerWorker extends Thread {
             String login = tokens[1];
             String password = tokens[2];
             String msg;
-            if(login.equals("guest")&&password.equals("guest")) {
+            if(login.equals("guest") && password.equals("guest")
+                    || login.equals("jim") && password.equals("jim")
+                    || login.equals("jack") && password.equals("jack")) {
                 msg = "Login effettuato\n";
                 this.login = login;
                 System.out.println("login fatto");
+                String onlineNotification = "L'utente " + login +" e' ora online!\n";
+
+                getUsersStatus();
+
+                broadcast(onlineNotification);
             }
             else
                 msg = "Errore nel login\n";
 
             outputStream.write(msg.getBytes());
         }
+    }
+
+    private void getUsersStatus() throws IOException {
+
+        String onlineNotification = null;
+        for(ServerWorker worker: server.getServerWorkersList()) {
+            onlineNotification = "L'utente " + worker.getLogin() +" e' ora online!\n";
+            send(onlineNotification);
+        }
+    }
+
+    private void broadcast(String msg) throws IOException {
+
+        for(ServerWorker worker: server.getServerWorkersList()) {
+            worker.send(msg);
+        }
+
+    }
+
+    private void send(String msg) throws IOException {
+
+        outputStream.write(msg.getBytes());
     }
 
 }
