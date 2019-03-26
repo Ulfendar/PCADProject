@@ -57,13 +57,12 @@ public class ServerWorker extends Thread {
     }
 
     private void handleMessages(OutputStream outputStream, String[] tokens) throws IOException {
-
-        StringBuilder msg = null;
-
-        for (int i=1; i<tokens.length; i++){
-            msg.append(tokens[i] + "\n");
-        }
-        outputStream.write(msg.toString().getBytes());
+        String msg = null;
+        if (tokens.length == 2)
+            msg = "Messaggio: " + tokens[1] + "\n";
+        else
+            msg = "Errore di sintassi \n      Prova -> [msg CONTENUTO_MSG]";
+        outputStream.write(msg.getBytes());
     }
 
     private void handleLogin(OutputStream outputStream, String[] tokens) throws IOException {
