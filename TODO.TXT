@@ -16,4 +16,4 @@ Comunicazioni
 3) User -> User
 
     - messaggi diretti
-    - broadcasts
+    - broadcasts ++
